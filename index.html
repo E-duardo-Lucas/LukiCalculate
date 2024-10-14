@@ -100,21 +100,11 @@
                 isListening: false // Estado para mostrar el indicador de "Escuchando..."
             },
             methods: {
-                async startRecognition() {
+                startRecognition() {
                     // Verificar compatibilidad con la API de reconocimiento de voz
                     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
                     if (!SpeechRecognition) {
                         alert('API de reconocimiento de voz no compatible con este navegador.');
-                        return;
-                    }
-
-                    try {
-                        // Intentar obtener permiso para usar el micrófono
-                        await navigator.mediaDevices.getUserMedia({ audio: true });
-                        console.log("Permiso de micrófono concedido.");
-                    } catch (err) {
-                        console.error("Error al obtener permiso de micrófono: ", err);
-                        alert("Necesitas activar los permisos de micrófono para que funcione.");
                         return;
                     }
 
@@ -123,12 +113,12 @@
                     recognition.interimResults = false;
                     recognition.continuous = false;
 
-                    // Al iniciar el reconocimiento, mostrar el indicador de "Escuchando..."
+                    // Cuando empieza a escuchar, mostrar el indicador de "Escuchando..."
                     recognition.onstart = () => {
                         this.isListening = true;
                     };
 
-                    // Al finalizar el reconocimiento, ocultar el indicador
+                    // Cuando termina de escuchar, ocultar el indicador
                     recognition.onend = () => {
                         this.isListening = false;
                     };
@@ -139,23 +129,49 @@
                         this.processVoiceCommand(transcript);
                     };
 
-                    // Controlar los errores
-                    recognition.onerror = (event) => {
-                        console.error('Error en reconocimiento de voz: ', event.error);
-                        this.isListening = false;
-                        alert('Error en el reconocimiento de voz. Intenta nuevamente.');
-                    };
-
                     recognition.start();
                 },
 
                 processVoiceCommand(command) {
-                    // Agregar la nueva parte de la operación al input
-                    this.operation += command;
+                    // Mapeo de las palabras a los operadores matemáticos
+                    const wordToOperator = {
+                        'más': '+',
+                        'menos': '-',
+                        'por': '*',
+                        'entre': '/'
+                    };
 
-                    // Si el comando contiene "igual", hacer el cálculo
+                    // Reemplazar palabras por operadores
+                    for (const word in wordToOperator) {
+                        const operator = wordToOperator[word];
+                        command = command.replace(new RegExp(`\\b${word}\\b`, 'g'), operator);
+                    }
+
+                    // Convertir números escritos a números numéricos (ejemplo: 'uno' a '1')
+                    const wordToNumber = {
+                        'uno': '1',
+                        'dos': '2',
+                        'tres': '3',
+                        'cuatro': '4',
+                        'cinco': '5',
+                        'seis': '6',
+                        'siete': '7',
+                        'ocho': '8',
+                        'nueve': '9',
+                        'diez': '10'
+                    };
+
+                    for (const word in wordToNumber) {
+                        const number = wordToNumber[word];
+                        command = command.replace(new RegExp(`\\b${word}\\b`, 'g'), number);
+                    }
+
+                    // Detectar la palabra 'igual' para realizar la operación
                     if (command.includes('igual')) {
                         this.calculateResult();
+                    } else {
+                        // Agregar la nueva parte de la operación al input
+                        this.operation += command;
                     }
                 },
 
