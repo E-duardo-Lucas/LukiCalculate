@@ -100,11 +100,21 @@
                 isListening: false // Estado para mostrar el indicador de "Escuchando..."
             },
             methods: {
-                startRecognition() {
+                async startRecognition() {
                     // Verificar compatibilidad con la API de reconocimiento de voz
                     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
                     if (!SpeechRecognition) {
                         alert('API de reconocimiento de voz no compatible con este navegador.');
+                        return;
+                    }
+
+                    try {
+                        // Intentar obtener permiso para usar el micrófono
+                        await navigator.mediaDevices.getUserMedia({ audio: true });
+                        console.log("Permiso de micrófono concedido.");
+                    } catch (err) {
+                        console.error("Error al obtener permiso de micrófono: ", err);
+                        alert("Necesitas activar los permisos de micrófono para que funcione.");
                         return;
                     }
 
@@ -129,7 +139,7 @@
                         this.processVoiceCommand(transcript);
                     };
 
-                    // Controlar los errores en móviles que detienen el reconocimiento de voz
+                    // Controlar los errores
                     recognition.onerror = (event) => {
                         console.error('Error en reconocimiento de voz: ', event.error);
                         this.isListening = false;
@@ -140,61 +150,13 @@
                 },
 
                 processVoiceCommand(command) {
-                    // Validar que solo haya números o operadores en la cadena reconocida
-                    const validCommand = this.validateCommand(command);
+                    // Agregar la nueva parte de la operación al input
+                    this.operation += command;
 
-                    if (validCommand) {
-                        // Mapeo de las palabras a los operadores matemáticos
-                        const wordToOperator = {
-                            'más': '+',
-                            'menos': '-',
-                            'por': '*',
-                            'entre': '/'
-                        };
-
-                        // Reemplazar palabras por operadores
-                        for (const word in wordToOperator) {
-                            const operator = wordToOperator[word];
-                            command = command.replace(new RegExp(`\\b${word}\\b`, 'g'), operator);
-                        }
-
-                        // Convertir números escritos a números numéricos (ejemplo: 'uno' a '1')
-                        const wordToNumber = {
-                            'uno': '1',
-                            'dos': '2',
-                            'tres': '3',
-                            'cuatro': '4',
-                            'cinco': '5',
-                            'seis': '6',
-                            'siete': '7',
-                            'ocho': '8',
-                            'nueve': '9',
-                            'diez': '10'
-                        };
-
-                        for (const word in wordToNumber) {
-                            const number = wordToNumber[word];
-                            command = command.replace(new RegExp(`\\b${word}\\b`, 'g'), number);
-                        }
-
-                        // Si el comando contiene "igual", hacer el cálculo
-                        if (command.includes('igual')) {
-                            this.calculateResult();
-                        } else {
-                            // Agregar la nueva parte de la operación al input
-                            this.operation += command;
-                        }
-                    } else {
-                        // Detener el reconocimiento si no se detectan números u operadores válidos
-                        this.isListening = false;
-                        alert('Solo se aceptan números y operadores válidos.');
+                    // Si el comando contiene "igual", hacer el cálculo
+                    if (command.includes('igual')) {
+                        this.calculateResult();
                     }
-                },
-
-                validateCommand(command) {
-                    // Verificar si el comando contiene solo números o signos permitidos, incluyendo la palabra "igual"
-                    const regex = /^[\d\s+\-*/igual]+$/;
-                    return regex.test(command);
                 },
 
                 calculateResult() {
