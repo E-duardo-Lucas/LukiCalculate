@@ -24,6 +24,7 @@
             width: 90%;
             max-width: 500px;
             box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+            position: relative;
         }
 
         input {
@@ -47,6 +48,30 @@
             background-color: #218838;
         }
 
+        .listening-indicator {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.6);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            border-radius: 10px;
+            z-index: 1;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease-in-out;
+        }
+
+        .listening-indicator.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
         @media (min-width: 768px) {
             #app {
                 width: 60%;
@@ -60,6 +85,9 @@
         <button @click="startRecognition">Activar Micrófono</button>
         <input type="text" v-model="operation" placeholder="Tu operación aparecerá aquí" readonly>
         <input type="text" v-model="result" placeholder="Resultado" readonly>
+
+        <!-- Indicador de "Escuchando..." -->
+        <div class="listening-indicator" :class="{ active: isListening }">Escuchando...</div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
@@ -68,7 +96,8 @@
             el: '#app',
             data: {
                 operation: '', // Para almacenar la operación
-                result: ''     // Para almacenar el resultado
+                result: '',     // Para almacenar el resultado
+                isListening: false // Estado para mostrar el indicador de "Escuchando..."
             },
             methods: {
                 startRecognition() {
@@ -84,6 +113,17 @@
                     recognition.interimResults = false;
                     recognition.continuous = false;
 
+                    // Cuando empieza a escuchar, mostrar el indicador de "Escuchando..."
+                    recognition.onstart = () => {
+                        this.isListening = true;
+                    };
+
+                    // Cuando termina de escuchar, ocultar el indicador
+                    recognition.onend = () => {
+                        this.isListening = false;
+                    };
+
+                    // Procesar el resultado del reconocimiento de voz
                     recognition.onresult = (event) => {
                         const transcript = event.results[0][0].transcript.toLowerCase();
                         this.processVoiceCommand(transcript);
