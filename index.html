@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reconocimiento de Voz con Cálculos</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+
+        #app {
+            text-align: center;
+            padding: 20px;
+            background-color: white;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            font-size: 18px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #218838;
+        }
+
+        @media (min-width: 768px) {
+            #app {
+                width: 60%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <h1>Reconocimiento de Voz</h1>
+        <button @click="startRecognition">Activar Micrófono</button>
+        <input type="text" v-model="operation" placeholder="Tu operación aparecerá aquí" readonly>
+        <input type="text" v-model="result" placeholder="Resultado" readonly>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
+    <script>
+        const app = new Vue({
+            el: '#app',
+            data: {
+                operation: '', // Para almacenar la operación
+                result: ''     // Para almacenar el resultado
+            },
+            methods: {
+                startRecognition() {
+                    // Verificar compatibilidad con la API de reconocimiento de voz
+                    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                    if (!SpeechRecognition) {
+                        alert('API de reconocimiento de voz no compatible con este navegador.');
+                        return;
+                    }
+
+                    const recognition = new SpeechRecognition();
+                    recognition.lang = 'es-ES';
+                    recognition.interimResults = false;
+                    recognition.continuous = false;
+
+                    recognition.onresult = (event) => {
+                        const transcript = event.results[0][0].transcript.toLowerCase();
+                        this.processVoiceCommand(transcript);
+                    };
+
+                    recognition.start();
+                },
+
+                processVoiceCommand(command) {
+                    // Mapeo de las palabras a los operadores matemáticos
+                    const wordToOperator = {
+                        'más': '+',
+                        'menos': '-',
+                        'por': '*',
+                        'entre': '/'
+                    };
+
+                    // Reemplazar palabras por operadores
+                    for (const word in wordToOperator) {
+                        const operator = wordToOperator[word];
+                        command = command.replace(new RegExp(`\\b${word}\\b`, 'g'), operator);
+                    }
+
+                    // Convertir números escritos a números numéricos (ejemplo: 'uno' a '1')
+                    const wordToNumber = {
+                        'uno': '1',
+                        'dos': '2',
+                        'tres': '3',
+                        'cuatro': '4',
+                        'cinco': '5',
+                        'seis': '6',
+                        'siete': '7',
+                        'ocho': '8',
+                        'nueve': '9',
+                        'diez': '10'
+                    };
+
+                    for (const word in wordToNumber) {
+                        const number = wordToNumber[word];
+                        command = command.replace(new RegExp(`\\b${word}\\b`, 'g'), number);
+                    }
+
+                    // Detectar la palabra 'igual' para realizar la operación
+                    if (command.includes('igual')) {
+                        this.calculateResult();
+                    } else {
+                        // Agregar la nueva parte de la operación al input
+                        this.operation += command;
+                    }
+                },
+
+                calculateResult() {
+                    try {
+                        // Evaluar la operación actual y actualizar el resultado
+                        this.result = eval(this.operation);
+                    } catch (error) {
+                        this.result = 'Error';
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
